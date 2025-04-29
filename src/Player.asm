@@ -6,7 +6,7 @@
 .globl printPlayerFullName
 
 .data
-	playerIcon: .byte '@'
+	playerIcon: .byte '!'
 	playerName: .asciiz "Player"
 	
 	inputPrompt1: .asciiz "upper or lower arrow [0,1]: "
@@ -16,7 +16,7 @@
 
 # purpose: gets player input
 # parameters: 
-# return: $v0, slider. $v1, value
+# return: $v0, slider. $v1, value. $a0, claimedRow. $a1, claimedCol
 getPlayerInput:
 	addi $sp, $sp, -4             # add to stack
 	sw $ra, 0($sp)                # save $ra on stack

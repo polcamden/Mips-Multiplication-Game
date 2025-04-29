@@ -25,6 +25,7 @@
 .globl printBoard
 .globl printNumberLine
 .globl claimCell
+.globl checkWin
 
 # purpose: resets claims, upper, and lower
 # parameters: 
@@ -150,10 +151,11 @@ printNumberLine:
 
 # purpose: prints board to screen 
 # parameters: $a0, slider. $a1, value. $a2, claimMaker 1-player 2-computer
-# return: $v0, successful = 1 else 0
+# return: $v0, successful = 1 else 0. $a0, claimedRow. $a1, claimedCol.  
 claimCell:
-	addi $sp, $sp, -4             # add to stack
+	addi $sp, $sp, -8             # add to stack
 	sw $ra, 0($sp)                # save $ra on stack
+	sw $s0, 4($sp)                # save $s0 on stack
 	                            # get oposite slider
 	move $t3, $a0                 # $t3 = $a0, slider
 	lw $t7, lower                 # $t7 = upper
@@ -163,7 +165,7 @@ claimCell:
   	mul $t6, $t7, $a1             # $t6 = oppositeSlider * value
   	move $a0, $t6                 # $a0 = $t6
   	jal findCellByValue           # call findCellByValue
-  	
+  	move $s0, $v0                 # $s0 = cellIndex
   	la $t0, claims                # $t0 = &claims
   	add $t0, $t0, $v0             # $t0 = &claims[foundIndex]
   	lb $t1, 0($t0)                # $t1 = claims[foundIndex]
@@ -181,8 +183,17 @@ claimCell:
    changeExit:
 	li $v0, 1                     # $v0 = 1, successful move
   validMoveExit:
-	lw $ra, 0($sp)                # get ra from stack
- 	addi $sp, $sp, 4              # return $sp to original
+  	li $a0, 0
+  	li $a1, 0
+  	
+  	lw $t0, boardWidth            # $t0 = boardWidth
+  	divu $s0, $t0                 # divide cellIndex by width
+	mflo $a0                      # $a0 = row (quotient)
+	mfhi $a1                      # $a1 = col (remainder)
+
+	lw $ra, 0($sp)                # get $ra from stack
+	lw $s0, 4($sp)                # get $s0 on stack
+ 	addi $sp, $sp, 8              # return $sp to original
 	jr $ra                        # return
 
 # purpose: given a value returns the cell index
@@ -255,16 +266,82 @@ getPlayerIcon:
    	
 # purpose: checks wins 
 # parameters: $a0, row. $a1, col
-# return: $v0, isWin = 1 else 0
+# return: $v0, winner claim 1,2 or 0 for no winner
 checkWin:
-	addi $sp, $sp, -4             # add to stack
+	addi $sp, $sp, -36             # add to stack
 	sw $ra, 0($sp)                # save $ra on stack
+	sw $s0, 4($sp)                # save $s0 on stack
+	sw $s1, 8($sp)                # save $s1 on stack
+	sw $s2, 12($sp)               # save $s2 on stack
+	sw $s3, 16($sp)               # save $s3 on stack
+	sw $s4, 20($sp)               # save $s4 on stack
+	sw $s5, 24($sp)               # save $s5 on stack
+	sw $s6, 28($sp)               # save $s6 on stack
+	sw $s7, 32($sp)               # save $s7 on stack
 	
+	move $s0, $a0                 # $s0 = row
+	move $s1, $a1                 # $s1 = col
 	
+	li $s2, 0                     # $t0 = 0, directionIndex
+  directionLoop:
+  	move $a0, $s2                 # $v0 = directionIndex
+	jal getDirection              # call getDirection
+	move $s6, $v0                 # $t1 = rowDirection
+	move $s7, $v1                 # $t2 = colDirection
+	mul $t3, $s6, -3              # $t3 = rowDirection * -3, for rowPosition
+	mul $t4, $s7, -3              # $t4 = colDirection * -3, for colPosition
+	add $s3, $t3, $s0             # rowPosition += row
+	add $s4, $t4, $s1             # colPosition += col
 	
+	li $s5, 0                     # $s5 = 0, for line index 0-6
+   stackClaims:
+   	move $a0, $s3                 # $v0 = rowPosition
+	move $a1, $s4                 # $v1 = colPosition
+	jal getCellData               # call cellData
+	addi $sp, $sp, -1             # add to stack
+   	sb $v1, 0($sp)                # add claim onto stack
+   	
+   	add $s3, $s3, $s6             # rowPos += rowDir
+   	add $s4, $s4, $s7             # colPos += colDir
+	addi $s5, $s5, 1              # lineIndex++
+	bne $s5, 7, stackClaims       # if(lineIndex != 7) goto stackClaims
+   #stackClaims end
+	li $s5, 0                     # $s5 = 0, for line index 0-6
+	li $t1, 0                     # $t1 = 0, currentClaim being counted
+	li $t2, 0                     # $t2 = 1, claimCount
+	addi $t7, $sp, 7              # $t7 = $sp - 7, for the original stackPos
+   clearClaims:
+   	lb $t0, 0($sp)                # $t0 = cellClaim, grab cellClaim from stack
+	addi $sp, $sp, 1              # push stack down 1 bytes
 	
+	bne $t0, $t1, newClaimCount   # if(currentClaim != $t0) goto changeClaimCounting
+	addi $t2, $t2, 1              # claimCount++
+	beq $t2, 4, hasWinner         # if(claimCount == 4) goto hasWinner
+	j claimCountExit              # else goto claimCountExit
+    newClaimCount:
+	li $t2, 1                     # reset claimCount to 1
+	move $t1, $t0                 # change currentClaim to this cell
+    claimCountExit:
+	addi $s5, $s5, 1              # lineIndex++
+	bne $s5, 7, clearClaims       # if(lineIndex != 7) goto stackClaims
+	addi $s2, $s2, 1              # directionIndex++
+	bne $s2, 4, directionLoop     # if(directionIndex != 4) goto DirectionLoop
+	li $v0, 0                     # else, $v0 = 0, by this time if hasWinner was never jumped theres no winner
+	j directionExit               # goto directionExit
+  hasWinner:
+  	move $v0, $t1                 # $v0 = claimCount
+  	move $sp, $t7                 # reset stack to original pos
+  directionExit:
 	lw $ra, 0($sp)                # get ra from stack
- 	addi $sp, $sp, 4              # return $sp to original
+	lw $s0, 4($sp)                # save $s0 on stack
+	lw $s1, 8($sp)                # save $s1 on stack
+	lw $s2, 12($sp)               # save $s2 on stack
+	lw $s3, 16($sp)               # save $s3 on stack
+	lw $s4, 20($sp)               # save $s4 on stack
+	lw $s5, 24($sp)               # save $s5 on stack
+	sw $s6, 28($sp)               # save $s6 on stack
+	sw $s7, 32($sp)               # save $s7 on stack
+ 	addi $sp, $sp, 36             # return $sp to original
 	jr $ra                        # return
 	
 # purpose: gets the win directions

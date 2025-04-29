@@ -15,12 +15,14 @@
 .text
 # purpose: gets computer input
 # parameters: 
-# return: $v0, slider. $v1, value
+# return: $v0, slider. $v1, value. $a0, claimedRow. $a1, claimedCol
 getComputerInput:
-	addi $sp, $sp, -12             # add to stack
+	addi $sp, $sp, -20            # add to stack
 	sw $ra, 0($sp)                # save $ra on stack
-	sw $s0, 4($sp)                # save $ra on stack
-	sw $s1, 8($sp)                # save $ra on stack
+	sw $s0, 4($sp)                # save $s0 on stack
+	sw $s1, 8($sp)                # save $s1 on stack
+	sw $s2, 12($sp)               # save $s2 on stack
+	sw $s3, 16($sp)               # save $s3 on stack
 	
 	li $v0, SysPrintString        # print string
 	la $a0, inputPrompt1          # print inputPrompt1
@@ -43,6 +45,8 @@ getComputerInput:
 	move $a1, $s1                 # $a0 = $v0
 	li $a2, 2                     # $a2 = 2
 	jal claimCell                 # call claimCell
+	move $s2, $a0                 # $s2 = claimRow
+	move $s3, $a1                 # $s2 = claimCol
 	beq $v0, 0, invalidMove       # if($v0 == 0) goto invalidMove
 	                             # print prompt of play
 	beq $s0, 1, isLower           # if($v0 == 1) goto isLower
@@ -62,9 +66,14 @@ getComputerInput:
 	la $a0, 10                    # la promptNames for printing
 	syscall                       # syscall
 	
+	move $a0, $s2                 # $s2 = claimRow
+	move $a1, $s3                 # $s2 = claimCol
+	
 	lw $ra, 0($sp)                # get ra from stack
-	lw $s0, 4($sp)                # get ra from stack
-	lw $s1, 8($sp)                # get ra from stack
+	lw $s0, 4($sp)                # get $s0 from stack
+	lw $s1, 8($sp)                # get $s1 from stack
+	lw $s2, 12($sp)               # get $s2 on stack
+	lw $s3, 16($sp)               # get $s3 on stack
  	addi $sp, $sp, 12             # return $sp to original
 	jr $ra                        # return
 

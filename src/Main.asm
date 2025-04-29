@@ -19,32 +19,37 @@ main:
 	jal printHeader               # print header
 	jal enterToContinue           # pause till enter
 	
-	li $s0, 0                     # $s0 = 0, for winner
   gameLoop:
 	jal resetBoard                # reset board
-   turnLoop:
-   		                        # player turn
+    turnLoop:
+   	                            # player turn
 	jal printBoard                # call printGridArray to display grid
 	jal printNumberLine           # call printNumberLine
-	jal getPlayerInput            # get player input
-	#check if win at row col
+	
+	jal getPlayerInput            # call getPlayerInput return $a0, rowClaimed. $a1, colClaimed
+	jal checkWin                  # call checkWin $a0, $a1
+	bne $v0, 0, hasWinner         # if($v0 != 0) goto hasWinner
 	                            # computer turn
 	jal getComputerInput          # get computer input
-	# check retern value ^ and loop
-	#bne $s0, 0, hasWinner         # break if theres a winner
-
-	
-    # check retern value ^ and loop
-    #bne $s0, 0, hasWinner          # break if theres a winner
-    j turnLoop                    # if no winner goto gameLoop
-   hasWinner:
-   	# display board
-   	# display winner
+	jal checkWin                  # call checkWin $a0, $a1
+	bne $v0, 0, hasWinner         # if($v0 != 0) goto hasWinner
+	j turnLoop                    # if no winner goto turnLoop
+  hasWinner:
+   	jal printBoard                # print board
+   	
+   	beq $v0, 2, isComputerWin     # if($v0 == 2) goto isComputerWin
+   	jal printPlayerFullName       # else, call printPlayerFullName
+   	j winnerExit                  # exit if/else
+    isComputerWin:
+   	jal printComputerFullName     # call printComputerFullName
+  winnerExit:
+   	li $v0, SysPrintString        # service call: print int
+	la $a0, promptWinner          # load winner prompt                  
+	syscall                       # syscall
+   
    	# ask to play again
-    
-    
-    
-    li $v0, SysExit               # exit program
+   	
+	li $v0, SysExit               # exit program
 	syscall                       # syscall
     
 ### Prints ###
