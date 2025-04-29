@@ -253,3 +253,45 @@ getPlayerIcon:
   noClaim:
 	jr $ra                     # return
    	
+# purpose: checks wins 
+# parameters: $a0, row. $a1, col
+# return: $v0, isWin = 1 else 0
+checkWin:
+	addi $sp, $sp, -4             # add to stack
+	sw $ra, 0($sp)                # save $ra on stack
+	
+	
+	
+	
+	lw $ra, 0($sp)                # get ra from stack
+ 	addi $sp, $sp, 4              # return $sp to original
+	jr $ra                        # return
+	
+# purpose: gets the win directions
+# parameters: $a0, [0-3] right, downRight, down, downLeft
+# return: $v0, rowDirection. $v1, colDirection.
+getDirection:
+	beq $a0, $zero, dirRight      # if($a0 == 0) goto dirRight
+	li $t1, 1
+	beq $a0, $t1, dirDownRight    # if($a0 == 1) goto dirDownRight
+	li $t1, 2
+	beq $a0, $t1, dirDown         # if($a0 == 2) goto dirDown
+	li $t1, 3
+	beq $a0, $t1, dirDownLeft     # if($a0 == 2) goto dirDownLeft
+  dirRight:
+	li $v0, 0                     # $v0 = 0 rowDir
+	li $v1, 1                     # $v1 = 1 colDir
+	j directionEnd
+  dirDownRight:
+	li $v0, 1                     # $v0 = 1 rowDir
+	li $v1, 1                     # $v1 = 1 colDir
+	j directionEnd
+  dirDown:
+	li $v0, 1                     # $v0 = 1 rowDir
+	li $v1, 0                     # $v1 = 0 colDir
+	j directionEnd
+  dirDownLeft:
+	li $v0, 1                     # $v0 = 1 rowDir
+	li $v1, -1                    # $v1 = 0 colDir
+  directionEnd:
+	jr $ra                        # return
