@@ -6,6 +6,8 @@
 .globl spamChar
 .globl printHeader
 .globl enterToContinue
+.globl askToPlayAgain
+.globl printPlayerWin
 
 .data
 	######################### Prompts ############################
@@ -126,7 +128,29 @@ printNumberLine:
  	addi $sp, $sp, 4              # return $sp to original
 	jr $ra                        # return 
 
-PrintPlayerWin:
+# purpose: gets player or computer icon from claim value 
+# parameters: $a0, claim
+# return: $v0, icon char.
+getPlayerIcon:
+	li $v0, 32                    # $t2 = claim icon, ' ' or player icon
+	beq $a0, 1, isPlayer          # if(claim == 1) goto isPlayer
+  	beq $a0, 2, isComputer        # if(claim == 2) goto isComputer
+	j noClaim                     # jump to noClaim
+  isPlayer:
+	lb $v0, playerIcon            # load player char
+	j noClaim                     # jump to noClaim
+  isComputer:
+	lb $v0, computerIcon          # load computer char 
+  noClaim:
+	jr $ra                     # return
+
+# purpose: prints the winner of the game
+# parameters: $a0, 1 - player, 2 - computer
+# return:
+printPlayerWin:
+	addi $sp, $sp, -4             # add to stack
+	sw $ra, 0($sp)                # save $ra on stack
+	
 	beq $v0, 2, isComputerWin     # if($v0 == 2) goto isComputerWin
    	jal printPlayerFullName       # else, call printPlayerFullName
    	j winnerExit                  # exit if/else
@@ -137,7 +161,36 @@ PrintPlayerWin:
 	la $a0, promptWinner          # load winner prompt                  
 	syscall                       # syscall
 	
-	jr $ra
+	lw $ra, 0($sp)                # get ra from stack
+ 	addi $sp, $sp, 4              # return $sp to original
+	jr $ra                        # return
+
+# purpose: prompts to play again y/n response
+# parameters: 
+# return: $v1, 0 - quit, 1 - playAgain
+askToPlayAgain:
+	li $v0, SysPrintString        # print string 
+	la $a0, promptPlayAgain       # $a0 = &promptPlayAgain
+	syscall                       # syscall
+	li $v0, SysReadChar           # print string 
+	syscall                       # syscall
+	
+	beq $v0, 'y', playAgain       # if($v0 == 'y') goto playAgain
+	beq $v0, 'n', quit            # else if($v0 == 'n') goto quit
+	li $v0, SysPrintChar          # print char
+	la $a0, '\n'                  # la promptNames for printing
+	syscall                       # syscall
+	j askToPlayAgain              # else goto askToPlayAgain
+  playAgain:
+  	li $v1, 1                     # $v0 = 1, playAgain
+  	j exitAsk                     # exit if/else
+  quit:
+	li $v1, 0                     # $v0 = 0, quit
+  exitAsk:
+  	li $v0, SysPrintChar          # print char
+	la $a0, '\n'                  # la promptNames for printing
+	syscall                       # syscall
+	jr $ra                        # return
 
 # purpose: prints a line return to screen 
 # parameters: 

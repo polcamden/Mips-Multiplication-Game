@@ -31,12 +31,12 @@ getComputerInput:
 	#get number $t0 slider, $t1, value
   invalidMove:
 	li $v0, SysRandIntRange       # 42 is system call code to generate random int
-	li $a1, 1                     # $a1 is where you set the upper bound
+	li $a1, 2                     # $a1 is where you set the upper bound
 	syscall                       # your generated number will be at $a0
 	move $s0, $a0                 # $t0 = $v0, randNumber
 	
 	li $v0, SysRandIntRange       # 42 is system call code to generate random int
-	li $a1, 8                     # $a1 is where you set the upper bound
+	li $a1, 9                     # $a1 is where you set the upper bound
 	syscall                       # your generated number will be at $a0
 	addi $a0, $a0, 1              # $v0++
 	move $s1, $a0                 # $t0 = $v0, randNumber

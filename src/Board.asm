@@ -34,8 +34,7 @@
 # parameters: 
 # return: 
 resetBoard:
-	li $t0, 5                     # $t0 = 5
-	sw $t0, upper                 # upper = 0
+	sw $zero, upper                 # upper = 0
 	sw $zero, lower               # lower = 0
 	
 	la $t0, claims                # $t0 = &claims, index
@@ -54,13 +53,27 @@ claimCell:
 	addi $sp, $sp, -8             # add to stack
 	sw $ra, 0($sp)                # save $ra on stack
 	sw $s0, 4($sp)                # save $s0 on stack
-	                            # get oposite slider
+	
 	move $t3, $a0                 # $t3 = $a0, slider
+	
+	lw $t0, upper                 # $t0 = upper
+	lw $t1, lower                 # $t1 = lower
+	seq $t2, $t0, 0               # $t2 = upper == 0
+	seq $t5, $t1, 0               # $t3 = lower == 0
+	and $t4, $t2, $t5             # $t4 = upper == 0 && lower == 0
+	beq $t4, 0, notFirstMove      # if(upper != 0 && lower != 0) goto notFirstMove
+	li $s0, 0                     # $s0 = 0
+	li $a2, 0                     # $a2 = 0
+	la $t0, claims                # $t0 = &claims
+	j validMove                   # goto validMoveExit
+  notFirstMove:
+	                            # get oposite slider
 	lw $t7, lower                 # $t7 = upper
 	beq $t3, 0, isLower           # if($a0 == 0) goto isUpper
 	lw $t7, upper                 # $t7 = lower
   isLower:
   	mul $t6, $t7, $a1             # $t6 = oppositeSlider * value
+  	beq $t6, 0, invalidMove       # if(oppositeSlider * value == 0) goto invalidMove
   	move $a0, $t6                 # $a0 = $t6
   	jal findCellByValue           # call findCellByValue
   	move $s0, $v0                 # $s0 = cellIndex
@@ -68,6 +81,7 @@ claimCell:
   	add $t0, $t0, $v0             # $t0 = &claims[foundIndex]
   	lb $t1, 0($t0)                # $t1 = claims[foundIndex]
   	beq $t1, 0, validMove         # if($t1 == 0) goto validMove
+  invalidMove:
   	li $v0, 0                     # $v0 = 0, unsuccessful move
   	j validMoveExit               # jump to validMoveExit
   validMove:
@@ -81,9 +95,6 @@ claimCell:
    changeExit:
 	li $v0, 1                     # $v0 = 1, successful move
   validMoveExit:
-  	li $a0, 0
-  	li $a1, 0
-  	
   	lw $t0, boardWidth            # $t0 = boardWidth
   	divu $s0, $t0                 # divide cellIndex by width
 	mflo $a0                      # $a0 = row (quotient)
@@ -145,22 +156,6 @@ getCellData:
 	lb $v1, 0($t4)                # $v1 = claim[$t4]
 	
 	jr $ra                        # return
-	
-# purpose: gets player or computer icon from claim value 
-# parameters: $a0, claim
-# return: $v0, icon char.
-getPlayerIcon:
-	li $v0, 32                    # $t2 = claim icon, ' ' or player icon
-	beq $a0, 1, isPlayer          # if(claim == 1) goto isPlayer
-  	beq $a0, 2, isComputer        # if(claim == 2) goto isComputer
-	j noClaim                     # jump to noClaim
-  isPlayer:
-	lb $v0, playerIcon            # load player char
-	j noClaim                     # jump to noClaim
-  isComputer:
-	lb $v0, computerIcon          # load computer char 
-  noClaim:
-	jr $ra                     # return
    	
 # purpose: checks wins 
 # parameters: $a0, row. $a1, col
